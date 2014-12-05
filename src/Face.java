@@ -3,6 +3,9 @@ public class Face {
 	Vertex[] vertices = new Vertex[3];
 	Mtl mtl;
 	
+	public Face(){
+	}
+	
 	public Face(Vertex[] VERTICES){
 		vertices = VERTICES;
 	}

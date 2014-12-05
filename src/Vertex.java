@@ -5,6 +5,9 @@ public class Vertex {
 	double z;
 	double w = 1.0;
 	
+	public Vertex(){
+	}
+	
 	public Vertex(double X, double Y, double Z){
 		x = X;
 		y = Y;
