@@ -75,11 +75,26 @@ public class HW5 {
 		}
 		
 		try{
-			Scanner file = new Scanner(new FileReader(command));
+			Scanner file = new Scanner(new FileReader(obj));
 			while(file.hasNextLine()){
 				String line = file.nextLine();
 				String[] words = line.split(" ");
-				
+				if(words[0].equals("mtllib")){
+					
+					try{
+						Scanner mtlfile = new Scanner(new FileReader(words[1]));
+						while(mtlfile.hasNextLine()){
+							
+						}
+					}catch(FileNotFoundException e){
+			            System.out.println("Error: Could not open file. File name given is..." + words[1]);
+			            System.exit(1);
+					}
+					
+					
+					
+					
+				}
 			}
 		}catch(FileNotFoundException e){
             System.out.println("Error: Could not open file. File name given is..." + obj);
@@ -94,3 +109,13 @@ public class HW5 {
 	}
 	
 }
+
+
+
+
+
+
+
+
+
+
