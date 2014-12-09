@@ -1,5 +1,9 @@
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Scanner;
 import java.util.Vector;
 
@@ -15,7 +19,7 @@ public class HW5 {
 	static Vector<Face> faces = new Vector<Face>();
 	
 	
-	public static void main (String[] args){
+	public static void main (String[] args) throws IOException{
 		if(args.length!=2){
 			System.out.println("Error: Incorrect number of command arguments.");
 			System.out.println("Usage: HW3 objectFile commandFile");
@@ -237,7 +241,7 @@ public class HW5 {
 		for(int j=0; j<cameras.size(); j++){
 			String depthFilename = scenes.elementAt(i).name+"_"+cameras.elementAt(j).name+"_depth.ppm";
 			String colorFilename = scenes.elementAt(i).name+"_"+cameras.elementAt(j).name+"_color.ppm";
-			rayTrace(depthFilename,colorFilename);
+			rayTrace(depthFilename,colorFilename,scenes.elementAt(i),cameras.elementAt(j));
 		}
 	}
 		
@@ -248,9 +252,40 @@ public class HW5 {
 	}
 
 
-	private static void rayTrace(String depthFilename, String colorFilename) {
+	private static void rayTrace(String depthFilename, String colorFilename, Scene scene, Camera camera) throws IOException {
+		File depthFile = new File(depthFilename);
+		File colorFile = new File(colorFilename);
+		if(!depthFile.exists()){
+			depthFile.createNewFile();
+		}
+		if(!colorFile.exists()){
+			colorFile.createNewFile();
+		}
+		FileWriter fw = new FileWriter(depthFile.getAbsoluteFile());
+		FileWriter fw2 = new FileWriter(colorFile.getAbsoluteFile());
+		BufferedWriter depthBuf = new BufferedWriter(fw);
+		BufferedWriter colorBuf = new BufferedWriter(fw2);
+		depthBuf.write("P3\t" + scene.width + "\t" + scene.height + "\t" + "256\n");
+		colorBuf.write("P3\t" + scene.width + "\t" + scene.height + "\t" + "256\n");
+		
+		for(double i=0; i<scene.width; i++){
+			for(double j=0; j<scene.height; j++){
+				double x = (2.0/scene.width)*j-1.0;
+				double y = (2.0/scene.height)*i-1.0;
+				
+				double[] PRP = {camera.prpx,camera.prpy,camera.prpz};
+				double[] VPN = {camera.vpnx,camera.vpny,camera.vpnz};
+				double[] VUP = {camera.vupx,camera.vupy,camera.vupz};
+				
+			}
+		}
 		
 		
+		
+		
+		
+		depthBuf.close();
+		colorBuf.close();
 	}
 	
 }
