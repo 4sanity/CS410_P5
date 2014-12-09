@@ -20,4 +20,9 @@ public class Vertex {
 		z = Z;
 		w = W;
 	}
+	
+	public String toString(){
+		String result = "Vertex: " + x + " " + y + " " + z + " " + w; 
+		return result;
+	}
 }

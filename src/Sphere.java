@@ -7,6 +7,9 @@ public class Sphere {
 	double r;
 	Mtl mtl;
 	
+	public Sphere(){
+	}
+	
 	public Sphere(String NAME, double X, double Y, double Z){
 		name = NAME;
 		x = X;

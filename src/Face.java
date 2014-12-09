@@ -14,4 +14,9 @@ public class Face {
 		vertices = VERTICES;
 		mtl = MTL;
 	}
+	
+	public String toString(){
+		String result = "Face: ";
+		return result;
+	}
 }
