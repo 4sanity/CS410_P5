@@ -312,7 +312,24 @@ public class HW5 {
 						if(beta>=0 && gamma>=0 && (beta+gamma)>=0 && (beta+gamma)<=1){
 							DoubleMatrix U1 = pixel.sub(PRP);
 							DoubleMatrix U = Geometry.normalize(U1);
-							
+							DoubleMatrix Q = (PRP.add(T)).mul(U);
+							DoubleMatrix LQ = Q.sub(pixel);
+							double distLQ = Math.sqrt( Math.pow(LQ.get(0),2)+Math.pow(LQ.get(1),2)+Math.pow(LQ.get(2),2));
+							int depth = (int) (255 - (Math.min(255.0,255*(distLQ)/(camera.far-camera.near))));
+							if(minDepth==-1 || T<minDepth){
+								minDepth = T;
+								GrayScale = depth;
+								objMtl = curr.mtl;
+								//calculate N for triangles, L = Q(light)-S(surface)/normalized
+								DoubleMatrix V1 = new DoubleMatrix(3,1,a.x,a.y,a.z);
+								DoubleMatrix V2 = new DoubleMatrix(3,1,b.x,b.y,b.z);
+								DoubleMatrix V3 = new DoubleMatrix(3,1,c.x,c.y,c.z);
+								DoubleMatrix E1 = V2.sub(V1);
+								DoubleMatrix E2 = V3.sub(V2);
+								DoubleMatrix N1 = crossProduct(E1,E2);
+								N = Geometry.normalize(N1);
+								S = Q;
+							}
 						}
 					}
 				}
@@ -371,6 +388,17 @@ public class HW5 {
 //		DoubleMatrix result = x.div(Mag);
 //		return result;
 //	}
+	
+	//cross product of 2 3x1 vectors
+	public static DoubleMatrix crossProduct(DoubleMatrix a, DoubleMatrix b){
+		DoubleMatrix result = new DoubleMatrix(3,1, (a.get(1)*b.get(2)-a.get(2)*b.get(1)),(a.get(2)*b.get(0)-a.get(0)*b.get(2)),(a.get(0)*b.get(1)-a.get(1)*b.get(0)) );
+		return result;
+	}
+//	vector<double> crossProduct(vector<double> v1, vector<double> v2){
+//	    vector<double> result{ (v1[1]*v2[2] - v1[2]*v2[1]), (v1[2]*v2[0] - v1[0]*v2[2]), (v1[0]*v2[1] - v1[1]*v2[0]) };
+//	    return result;
+//	}
+
 	
 }
 
