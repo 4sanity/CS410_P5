@@ -6,7 +6,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Scanner;
 import java.util.Vector;
-
+import org.jblas.DoubleMatrix;
 
 public class HW5 {
 	static Vector<Camera> cameras = new Vector<Camera>();
@@ -17,7 +17,6 @@ public class HW5 {
 	static Vector<Group> groups = new Vector<Group>();
 	static Vector<Sphere> spheres = new Vector<Sphere>();
 	static Vector<Face> faces = new Vector<Face>();
-	
 	
 	public static void main (String[] args) throws IOException{
 		if(args.length!=2){
@@ -232,6 +231,7 @@ public class HW5 {
 				}//end if line not null
 				
 			}
+			file.close();
 		}catch(FileNotFoundException e){
             System.out.println("Error: Could not open file. File name given is..." + obj);
             System.exit(1);
@@ -273,10 +273,18 @@ public class HW5 {
 				double x = (2.0/scene.width)*j-1.0;
 				double y = (2.0/scene.height)*i-1.0;
 				
-				double[] PRP = {camera.prpx,camera.prpy,camera.prpz};
-				double[] VPN = {camera.vpnx,camera.vpny,camera.vpnz};
-				double[] VUP = {camera.vupx,camera.vupy,camera.vupz};
+				DoubleMatrix PRP = new DoubleMatrix(3,1,camera.prpx,camera.prpy,camera.prpz);
+				DoubleMatrix VPN = new DoubleMatrix(3,1,camera.vpnx,camera.vpny,camera.vpnz);
+				DoubleMatrix VUP = new DoubleMatrix(3,1,camera.vupx,camera.vupy,camera.vupz);
+				DoubleMatrix n = normalize(VPN);
+				DoubleMatrix VUPxn = VUP.mul(n);
+				DoubleMatrix u = normalize(VUPxn);
+				DoubleMatrix v = n.mul(u);
+				double d = camera.near;
+				DoubleMatrix pixel = PRP.sub(n.mul(d)).add(u.mul(x)).add(v.mul(-y));
+				DoubleMatrix W = new DoubleMatrix(3,1,pixel.get(1)-PRP.get(1),pixel.get(2)-PRP.get(2),pixel.get(3)-PRP.get(3));
 				
+				//ready to check for intersections, normalize untested
 			}
 		}
 		
@@ -286,6 +294,12 @@ public class HW5 {
 		
 		depthBuf.close();
 		colorBuf.close();
+	}
+	
+	public static DoubleMatrix normalize(DoubleMatrix x){
+		double Mag = Math.sqrt( Math.pow(x.get(1),2)+Math.pow(x.get(2),2)+Math.pow(x.get(3),2) );
+		DoubleMatrix result = x.div(Mag);
+		return result;
 	}
 	
 }
