@@ -6,7 +6,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Scanner;
 import java.util.Vector;
+
 import org.jblas.DoubleMatrix;
+import org.jblas.Geometry;
+import org.jblas.Solve;
 
 public class HW5 {
 	static Vector<Camera> cameras = new Vector<Camera>();
@@ -270,21 +273,88 @@ public class HW5 {
 		
 		for(double i=0; i<scene.width; i++){
 			for(double j=0; j<scene.height; j++){
+				double minDepth = -1;
+				double GrayScale = 255.0;
+				Mtl objMtl;
+				DoubleMatrix S = new DoubleMatrix(3,1,0,0,0);
+				DoubleMatrix N = new DoubleMatrix(3,1,0,0,0);
+				
 				double x = (2.0/scene.width)*j-1.0;
 				double y = (2.0/scene.height)*i-1.0;
 				
 				DoubleMatrix PRP = new DoubleMatrix(3,1,camera.prpx,camera.prpy,camera.prpz);
 				DoubleMatrix VPN = new DoubleMatrix(3,1,camera.vpnx,camera.vpny,camera.vpnz);
 				DoubleMatrix VUP = new DoubleMatrix(3,1,camera.vupx,camera.vupy,camera.vupz);
-				DoubleMatrix n = normalize(VPN);
+				DoubleMatrix n = Geometry.normalize(VPN);
 				DoubleMatrix VUPxn = VUP.mul(n);
-				DoubleMatrix u = normalize(VUPxn);
+				DoubleMatrix u = Geometry.normalize(VUPxn);
 				DoubleMatrix v = n.mul(u);
 				double d = camera.near;
 				DoubleMatrix pixel = PRP.sub(n.mul(d)).add(u.mul(x)).add(v.mul(-y));
-				DoubleMatrix W = new DoubleMatrix(3,1,pixel.get(0)-PRP.get(0),pixel.get(1)-PRP.get(1),pixel.get(2)-PRP.get(2));
+				DoubleMatrix W = pixel.sub(PRP);
 				
 				//ready to check for intersections, normalize untested
+				for(int g=0; g<groups.size(); g++){
+					for(int f=0; f<groups.elementAt(g).faces.size(); f++){
+						Face curr = groups.elementAt(g).faces.elementAt(f);
+						Vertex a = curr.vertices[0];
+						Vertex b = curr.vertices[1];
+						Vertex c = curr.vertices[2];
+						DoubleMatrix m = new DoubleMatrix(3,3, b.x-a.x,c.x-a.x,-W.get(0),
+												b.y-a.y,c.y-a.y,-W.get(1),
+												b.z-a.z,c.z-a.z,-W.get(2));
+						m = Solve.pinv(m); //psuedo inverse
+						DoubleMatrix v2 = new DoubleMatrix(3,1,PRP.get(0)-a.x,PRP.get(1)-a.y,PRP.get(2)-a.z);
+						DoubleMatrix BetaGammaT = m.mul(v2);
+						double beta = BetaGammaT.get(0);
+						double gamma = BetaGammaT.get(1);
+						double T = BetaGammaT.get(2);
+						if(beta>=0 && gamma>=0 && (beta+gamma)>=0 && (beta+gamma)<=1){
+							DoubleMatrix U1 = pixel.sub(PRP);
+							DoubleMatrix U = Geometry.normalize(U1);
+							
+						}
+					}
+				}
+//				for(unsigned g=0; g<groups.size(); g++){
+//					for(unsigned f=0; f<groups[g].faces.size(); f++){
+//						Face curr = groups[g].faces[f];
+//						Vertex a = curr.vertices[0];
+//						Vertex b = curr.vertices[1];
+//						Vertex c = curr.vertices[2];
+//						MATRIX m;
+//						m[0][0]=b.X-a.X;  m[0][1]=c.X-a.X;  m[0][2]=-(W[0]);
+//						m[1][0]=b.Y-a.Y;  m[1][1]=c.Y-a.Y;  m[1][2]=-(W[1]);
+//						m[2][0]=b.Z-a.Z;  m[2][1]=c.Z-a.Z;  m[2][2]=-(W[2]);
+//						inverseMatrix(m);
+//						vector<double> v{ PRP[0]-a.X,PRP[1]-a.Y,PRP[2]-a.Z };
+//						vector<double> BetaGammaT = m*v;
+//						double beta = BetaGammaT[0];
+//						double gamma = BetaGammaT[1];
+//						double T = BetaGammaT[2];
+//						if(beta>=0 && gamma>=0 && (beta+gamma)>=0 && (beta+gamma)<=1){
+//							vector<double> U1{ pixel[0]-PRP[0],pixel[1]-PRP[1],pixel[2]-PRP[2] };
+//							vector<double> U = normalize(U1);
+//							vector<double> Q{ PRP[0]+T*U[0],PRP[1]+T*U[1],PRP[2]+T*U[2] };
+//							double distLQ = sqrt(pow(Q[0]-pixel[0],2)+pow(Q[1]-pixel[1],2)+pow(Q[2]-pixel[2],2));
+//							int depth = 255 - (min(255.0,255*(distLQ)/(camera.FAR-camera.NEAR)));
+//							if(minDepth==-1 || T<minDepth){
+//								minDepth = T;
+//								GrayScale = depth;
+//								MTL = getMtl(curr.MTL,mtls);
+//								//calculate N for triangles, L = Q(light)-S(surface)/normalized
+//								vector<double> v1{ a.X,a.Y,a.Z };
+//								vector<double> v2{ b.X,b.Y,b.Z };
+//								vector<double> v3{ c.X,c.Y,c.Z };
+//								vector<double> E1 = v2-v1;
+//								vector<double> E2 = v3-v2;
+//								vector<double> N1 = crossProduct(E1,E2);
+//								N = normalize(N1);
+//								S = Q;
+//							}
+//						}
+//					}
+//				}      
 			}
 		}
 		
@@ -296,11 +366,11 @@ public class HW5 {
 		colorBuf.close();
 	}
 	
-	public static DoubleMatrix normalize(DoubleMatrix x){
-		double Mag = Math.sqrt( Math.pow(x.get(0),2)+Math.pow(x.get(1),2)+Math.pow(x.get(2),2) );
-		DoubleMatrix result = x.div(Mag);
-		return result;
-	}
+//	public static DoubleMatrix normalize(DoubleMatrix x){
+//		double Mag = Math.sqrt( Math.pow(x.get(0),2)+Math.pow(x.get(1),2)+Math.pow(x.get(2),2) );
+//		DoubleMatrix result = x.div(Mag);
+//		return result;
+//	}
 	
 }
 
