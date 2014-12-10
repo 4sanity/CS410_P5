@@ -282,7 +282,7 @@ public class HW5 {
 				DoubleMatrix v = n.mul(u);
 				double d = camera.near;
 				DoubleMatrix pixel = PRP.sub(n.mul(d)).add(u.mul(x)).add(v.mul(-y));
-				DoubleMatrix W = new DoubleMatrix(3,1,pixel.get(1)-PRP.get(1),pixel.get(2)-PRP.get(2),pixel.get(3)-PRP.get(3));
+				DoubleMatrix W = new DoubleMatrix(3,1,pixel.get(0)-PRP.get(0),pixel.get(1)-PRP.get(1),pixel.get(2)-PRP.get(2));
 				
 				//ready to check for intersections, normalize untested
 			}
@@ -297,7 +297,7 @@ public class HW5 {
 	}
 	
 	public static DoubleMatrix normalize(DoubleMatrix x){
-		double Mag = Math.sqrt( Math.pow(x.get(1),2)+Math.pow(x.get(2),2)+Math.pow(x.get(3),2) );
+		double Mag = Math.sqrt( Math.pow(x.get(0),2)+Math.pow(x.get(1),2)+Math.pow(x.get(2),2) );
 		DoubleMatrix result = x.div(Mag);
 		return result;
 	}
