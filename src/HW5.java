@@ -351,7 +351,8 @@ public class HW5 {
 					if(dSQ>0 && sc>camera.near && sc<camera.far){
 						DoubleMatrix LQ = Q.sub(pixel);
 						double distLQ = Math.sqrt( Math.pow(LQ.get(0),2)+Math.pow(LQ.get(1),2)+Math.pow(LQ.get(2),2));
-						int depth = (int) (255 - (Math.min(255.0,255*(distLQ)/(camera.far-camera.near))));
+						//System.out.println(distLQ);
+						int depth = (int) (255.0 - (Math.min(255.0,255.0*(distLQ)/(camera.far-camera.near))));
 						if(minDepth==-1 || sc<minDepth){
 							minDepth = sc;
 							GrayScale = depth;
