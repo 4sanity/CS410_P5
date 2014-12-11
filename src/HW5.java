@@ -289,8 +289,7 @@ public class HW5 {
 				DoubleMatrix VUPxn = VUP.mul(n);
 				DoubleMatrix u = Geometry.normalize(VUPxn);
 				DoubleMatrix v = n.mul(u);
-				double d = camera.near;
-				DoubleMatrix pixel = PRP.sub(n.mul(d)).add(u.mul(x)).add(v.mul(-y));
+				DoubleMatrix pixel = PRP.sub(n.mul(camera.near)).add(u.mul(x)).add(v.mul(-y));
 				DoubleMatrix W = pixel.sub(PRP);
 				
 				//ready to check for intersections, normalize untested
@@ -303,9 +302,10 @@ public class HW5 {
 						DoubleMatrix m = new DoubleMatrix(3,3, b.x-a.x,c.x-a.x,-W.get(0),
 												b.y-a.y,c.y-a.y,-W.get(1),
 												b.z-a.z,c.z-a.z,-W.get(2));
-						m = Solve.pinv(m); //psuedo inverse
+						//m = Solve.pinv(m); //psuedo inverse
+						m = inverse(m);
 						DoubleMatrix v2 = new DoubleMatrix(3,1,PRP.get(0)-a.x,PRP.get(1)-a.y,PRP.get(2)-a.z);
-						DoubleMatrix BetaGammaT = m.mul(v2);
+						DoubleMatrix BetaGammaT = m.mmul(v2);
 						double beta = BetaGammaT.get(0);
 						double gamma = BetaGammaT.get(1);
 						double T = BetaGammaT.get(2);
@@ -333,45 +333,105 @@ public class HW5 {
 						}
 					}
 				}
-//				for(unsigned g=0; g<groups.size(); g++){
-//					for(unsigned f=0; f<groups[g].faces.size(); f++){
-//						Face curr = groups[g].faces[f];
-//						Vertex a = curr.vertices[0];
-//						Vertex b = curr.vertices[1];
-//						Vertex c = curr.vertices[2];
-//						MATRIX m;
-//						m[0][0]=b.X-a.X;  m[0][1]=c.X-a.X;  m[0][2]=-(W[0]);
-//						m[1][0]=b.Y-a.Y;  m[1][1]=c.Y-a.Y;  m[1][2]=-(W[1]);
-//						m[2][0]=b.Z-a.Z;  m[2][1]=c.Z-a.Z;  m[2][2]=-(W[2]);
-//						inverseMatrix(m);
-//						vector<double> v{ PRP[0]-a.X,PRP[1]-a.Y,PRP[2]-a.Z };
-//						vector<double> BetaGammaT = m*v;
-//						double beta = BetaGammaT[0];
-//						double gamma = BetaGammaT[1];
-//						double T = BetaGammaT[2];
-//						if(beta>=0 && gamma>=0 && (beta+gamma)>=0 && (beta+gamma)<=1){
-//							vector<double> U1{ pixel[0]-PRP[0],pixel[1]-PRP[1],pixel[2]-PRP[2] };
-//							vector<double> U = normalize(U1);
-//							vector<double> Q{ PRP[0]+T*U[0],PRP[1]+T*U[1],PRP[2]+T*U[2] };
-//							double distLQ = sqrt(pow(Q[0]-pixel[0],2)+pow(Q[1]-pixel[1],2)+pow(Q[2]-pixel[2],2));
-//							int depth = 255 - (min(255.0,255*(distLQ)/(camera.FAR-camera.NEAR)));
-//							if(minDepth==-1 || T<minDepth){
-//								minDepth = T;
-//								GrayScale = depth;
-//								MTL = getMtl(curr.MTL,mtls);
-//								//calculate N for triangles, L = Q(light)-S(surface)/normalized
-//								vector<double> v1{ a.X,a.Y,a.Z };
-//								vector<double> v2{ b.X,b.Y,b.Z };
-//								vector<double> v3{ c.X,c.Y,c.Z };
-//								vector<double> E1 = v2-v1;
-//								vector<double> E2 = v3-v2;
-//								vector<double> N1 = crossProduct(E1,E2);
-//								N = normalize(N1);
-//								S = Q;
-//							}
-//						}
+				for(int s=0; s<spheres.size(); s++){
+					Sphere curr = spheres.elementAt(s);
+					DoubleMatrix O = new DoubleMatrix(3,1, curr.x,curr.y,curr.z);
+					double rSQ = Math.pow(curr.r,2);
+					DoubleMatrix c1 = O.sub(PRP);
+					double c = Math.sqrt( Math.pow(c1.get(0),2)+Math.pow(c1.get(1),2)+Math.pow(c1.get(2),2));
+					double cSQ = Math.pow(c,2);
+					W = Geometry.normalize(W);
+					DoubleMatrix vt = (O.sub(PRP)).mul(W);
+					double vv = vt.get(0)+vt.get(1)+vt.get(2);
+					double vSQ = Math.pow(vv,2);
+					double d = Math.sqrt(rSQ-(cSQ-vSQ));
+					double sc = vv-d;
+					DoubleMatrix Q = (PRP.add(sc)).mul(W);
+					double dSQ = Math.pow(d,2);
+					if(dSQ>0 && sc>camera.near && sc<camera.far){
+						DoubleMatrix LQ = Q.sub(pixel);
+						double distLQ = Math.sqrt( Math.pow(LQ.get(0),2)+Math.pow(LQ.get(1),2)+Math.pow(LQ.get(2),2));
+						int depth = (int) (255 - (Math.min(255.0,255*(distLQ)/(camera.far-camera.near))));
+						if(minDepth==-1 || sc<minDepth){
+							minDepth = sc;
+							GrayScale = depth;
+							//System.out.println(GrayScale);
+							objMtl = curr.mtl;
+							//calculate N for spheres, N=surface point on sphere-circle center/normalized
+							S = Q;
+							N = S.sub(O);
+							N = Geometry.normalize(N);
+						}
+					}
+				}
+				
+				//no objects hit white, else write closest
+				if(minDepth==-1){
+					depthBuf.write("0 0 0\n");
+					colorBuf.write("255 255 255\n");
+				}else{
+					depthBuf.write(GrayScale + " " + GrayScale + " " + GrayScale + "\n");
+					colorBuf.write("155 155 155\n");
+				}
+				
+				
+//				//no objects hit white, else write closest
+//				if(minDepth==-1){
+//					outputDepth << "0 0 0" << '\n';
+//					outputColor << "255 255 255" << '\n';
+//				}else{
+//					//lighting
+//					vector<double> Ka{ MTL.Ka[0],MTL.Ka[1],MTL.Ka[2] };
+//					vector<double> Kd{ MTL.Kd[0],MTL.Kd[1],MTL.Kd[2] };
+//					vector<double> Ks{ MTL.Ks[0],MTL.Ks[1],MTL.Ks[2] };
+//					vector<double> ambientValue{ 20,20,20 };
+//				
+//					vector<double> ambient{ Ka[0]*ambientValue[0],Ka[1]*ambientValue[1],Ka[2]*ambientValue[2] };
+//					vector<double> diffuse{ 0,0,0 };
+//					vector<double> spectular{ 0,0,0 };
+//
+//					vector<double> V = PRP-S;
+//					V = normalize(V);
+//
+//					for(unsigned l=0; l<lights.size(); l++){
+//						vector<double> L1 = { lights[l].X,lights[l].Y,lights[l].Z };
+//						vector<double> L = L1-S;
+//						normalize(L);
+//					
+//						double LdotN = dotProduct(L,N);
+//						vector<double> R = 2*(LdotN)*N-L;
+//						double VdotR = dotProduct(V,R);
+//					
+//						diffuse[0]+=(Kd[0]*lights[l].R)*LdotN;
+//						diffuse[1]+=(Kd[1]*lights[l].G)*LdotN;
+//						//if(lights[l].G==255){ cout << LdotN << endl; }
+//						diffuse[2]+=(Kd[2]*lights[l].B)*LdotN;
+//
+//						spectular[0]+=(Ks[0]*lights[l].R)*(pow(VdotR,MTL.Ns));
+//						spectular[1]+=(Ks[1]*lights[l].G)*(pow(VdotR,MTL.Ns));
+//						spectular[2]+=(Ks[2]*lights[l].B)*(pow(VdotR,MTL.Ns));			
+//					
 //					}
-//				}      
+//				
+//					vector<double> I = ambient+diffuse+spectular;
+//					int red = I[0];
+//					int blue = I[1];
+//					int green = I[2];
+//				
+//					if(red>255){ red=255; }
+//					if(green>255){ green=255; }
+//					if(blue>255){ blue=255; }
+//					if(red<0){ red=0; }
+//					if(green<0){ green=0; }
+//					if(blue<0){ blue=0; }
+//					
+//					outputDepth << GrayScale << " " << GrayScale << " " << GrayScale << '\n';
+//					outputColor << red << " " << green << " " << blue << '\n';
+//				}
+				
+				
+				
+				
 			}
 		}
 		
@@ -394,6 +454,43 @@ public class HW5 {
 		DoubleMatrix result = new DoubleMatrix(3,1, (a.get(1)*b.get(2)-a.get(2)*b.get(1)),(a.get(2)*b.get(0)-a.get(0)*b.get(2)),(a.get(0)*b.get(1)-a.get(1)*b.get(0)) );
 		return result;
 	}
+	
+	//matrices passed in are 3x3 and invertible
+	public static DoubleMatrix inverse(DoubleMatrix a){
+		DoubleMatrix temp = new DoubleMatrix(3,3, (a.get(1,1)*a.get(2,2))-(a.get(1,2)*a.get(2,1)),-((a.get(0,1)*a.get(2,2))-(a.get(0,2)*a.get(2,1))),(a.get(0,1)*a.get(1,2))-(a.get(0,2)*a.get(1,1)),
+													-((a.get(1,0)*a.get(2,2))-(a.get(1,2)*a.get(2,0))),(a.get(0,0)*a.get(2,2))-(a.get(0,2)*a.get(2,0)),-((a.get(0,0)*a.get(1,2))-(a.get(0,2)*a.get(1,0))),
+													(a.get(1,0)*a.get(2,1))-(a.get(1,1)*a.get(2,0)),-((a.get(0,0)*a.get(2,1))-(a.get(0,1)*a.get(2,0))),(a.get(0,0)*a.get(1,1))-(a.get(0,1)*a.get(1,0)) );
+		double detA = a.get(0,0)*((a.get(1,1)*a.get(2,2))-(a.get(1,2)*a.get(2,1)))-a.get(0,1)*((a.get(2,2)*a.get(1,0))-(a.get(1,2)*a.get(2,0)))+a.get(0,2)*((a.get(1,0)*a.get(2,1))-(a.get(1,1)*a.get(2,0)));
+		detA = 1/detA;
+		for(int i=0; i<3; i++){
+			for(int j=0; j<3; j++){
+				a.put(i,j,detA*temp.get(i,j));
+			}
+		}
+		return a;
+	}	
+	
+//	void inverseMatrix(MATRIX &a){
+//		MATRIX temp;
+//		temp[0][0]=(a[1][1]*a[2][2])-(a[1][2]*a[2][1]);
+//		temp[0][1]=-((a[0][1]*a[2][2])-(a[0][2]*a[2][1]));
+//		temp[0][2]=(a[0][1]*a[1][2])-(a[0][2]*a[1][1]);
+//		temp[1][0]=-((a[1][0]*a[2][2])-(a[1][2]*a[2][0]));
+//		temp[1][1]=(a[0][0]*a[2][2])-(a[0][2]*a[2][0]);
+//		temp[1][2]=-((a[0][0]*a[1][2])-(a[0][2]*a[1][0]));
+//		temp[2][0]=(a[1][0]*a[2][1])-(a[1][1]*a[2][0]);
+//		temp[2][1]=-((a[0][0]*a[2][1])-(a[0][1]*a[2][0]));
+//		temp[2][2]=(a[0][0]*a[1][1])-(a[0][1]*a[1][0]);
+//		double detA = 0;
+//		detA = a[0][0]*((a[1][1]*a[2][2])-(a[1][2]*a[2][1]))-a[0][1]*((a[2][2]*a[1][0])-(a[1][2]*a[2][0]))+a[0][2]*((a[1][0]*a[2][1])-(a[1][1]*a[2][0]));
+//		detA = 1/detA;
+//		for(unsigned i=0; i<3; i++){
+//			for(unsigned j=0; j<3; j++){
+//				a[i][j]=detA*temp[i][j];
+//			}
+//		}
+//	}
+	
 //	vector<double> crossProduct(vector<double> v1, vector<double> v2){
 //	    vector<double> result{ (v1[1]*v2[2] - v1[2]*v2[1]), (v1[2]*v2[0] - v1[0]*v2[2]), (v1[0]*v2[1] - v1[1]*v2[0]) };
 //	    return result;
